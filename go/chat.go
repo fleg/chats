@@ -2,15 +2,15 @@ package main
 
 import (
 	"fmt"
-	"net"
 	"io"
+	"net"
 )
 
 const MAX_MESSAGE_LENGTH = 64
 
 type Message struct {
 	clientId string
-	data string
+	data     string
 }
 
 // https://stackoverflow.com/questions/36417199/how-to-broadcast-message-using-channel/49877632#49877632
@@ -76,12 +76,12 @@ func handleWrite(conn net.Conn, outputCh chan Message, closeCh chan struct{}) {
 
 	for {
 		select {
-		case msg := <- outputCh:
-			if (msg.clientId != clientId) {
+		case msg := <-outputCh:
+			if msg.clientId != clientId {
 				n, err := conn.Write([]byte(msg.data))
-				if (n != len(msg.data)) {
+				if n != len(msg.data) {
 					fmt.Printf("[ERROR] Can't fully write to %v: %v/%v\n", clientId, n, len(msg.data))
-				} else if (err != nil) {
+				} else if err != nil {
 					fmt.Printf("[ERROR] Can't write to %v: %v\n", clientId, err)
 					return
 				}
@@ -96,24 +96,24 @@ func handleWrite(conn net.Conn, outputCh chan Message, closeCh chan struct{}) {
 
 func handleRead(conn net.Conn, inputCh chan string, closeCh chan struct{}) {
 	clientId := conn.RemoteAddr().String()
-	buf := make([]byte, MAX_MESSAGE_LENGTH + 1)
+	buf := make([]byte, MAX_MESSAGE_LENGTH+1)
 
 	defer close(closeCh)
 
 	for {
 		n, err := conn.Read(buf)
-		if (err != nil) {
-			if (err == io.EOF) {
+		if err != nil {
+			if err == io.EOF {
 				fmt.Printf("[INFO] EOF from %v\n", clientId)
 				return
 			} else {
 				fmt.Printf("[ERROR] Can't read from %v: %v\n", clientId, err)
 			}
-		} else if (n > MAX_MESSAGE_LENGTH) {
+		} else if n > MAX_MESSAGE_LENGTH {
 			fmt.Printf("[INFO] Invalid message from %v\n", clientId)
 			return
 		} else {
-			inputCh <-string(buf[0:n])
+			inputCh <- string(buf[0:n])
 		}
 	}
 }
@@ -142,7 +142,7 @@ func handleConnection(conn net.Conn, br *Broker) {
 			fmt.Printf("[INFO] Message from %v: %v", clientId, msg)
 			// use pointer???
 			br.Publish(Message{
-				data: msg,
+				data:     msg,
 				clientId: clientId,
 			})
 		case <-closeCh:
@@ -154,7 +154,7 @@ func handleConnection(conn net.Conn, br *Broker) {
 func main() {
 	addr := "0.0.0.0:9001"
 	ln, err := net.Listen("tcp", addr)
-	if (err != nil) {
+	if err != nil {
 		fmt.Printf("[ERROR] Can't listen: %v", err)
 	}
 
